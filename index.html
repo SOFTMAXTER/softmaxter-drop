@@ -265,8 +265,26 @@
         }
         document.getElementById('fileInput').addEventListener('change', handleFilesSelect); document.getElementById('folderInput').addEventListener('change', handleFilesSelect);
 
-        connection.on("UpdateUserList", users => { updateDeviceGrid(users); });
-        async function start() { try { await connection.start(); myConnectionId = connection.connectionId; document.getElementById('connection-status-text').innerText = "Conectado"; } catch (err) { setTimeout(start, 5000); } }
+        let currentUsers = {};
+        connection.on("UpdateUserList", users => { 
+            currentUsers = users; 
+            if (myConnectionId) updateDeviceGrid(currentUsers); 
+        });
+        
+        async function start() { 
+            try { 
+                await connection.start(); 
+                myConnectionId = connection.connectionId; 
+                document.getElementById('connection-status-text').innerText = "Conectado a la Red"; 
+                updateDeviceGrid(currentUsers); // Refrescamos la interfaz al instante
+            } 
+            catch (err) { 
+                console.error("Fallo la conexión:", err);
+                // Si Azure nos rechaza, ahora lo veremos escrito en la pantalla
+                document.getElementById('connection-status-text').innerText = "Bloqueado por Servidor (Revisa F12)"; 
+                setTimeout(start, 5000); 
+            } 
+        }
         start();
     </script>
 </body>
