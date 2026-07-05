@@ -1,10 +1,12 @@
 /* SOFTMAXTER DROP - Service Worker
    - Descargas por streaming cuando el navegador lo permite.
    - Cache básico de app shell para PWA.
-   - Limpieza automática de descargas activas. */
+   - Manejo seguro de errores de red para evitar FetchEvent rejected. */
 
-const CACHE_VERSION = 'softmaxter-drop-v4-cspfinal';
+const CACHE_VERSION = 'softmaxter-drop-v5-swfix';
 const APP_SHELL = [
+  './',
+  './index.html',
   './config.js',
   './inline.js',
   './manifest.webmanifest',
@@ -38,6 +40,64 @@ function safeFilename(name) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 180) || 'archivo';
+}
+
+async function offlineHtmlResponse() {
+  const cached = await caches.match('./index.html', { ignoreSearch: true })
+    || await caches.match('./', { ignoreSearch: true });
+
+  if (cached) return cached;
+
+  return new Response(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Softmaxter Drop</title>
+</head>
+<body style="font-family:system-ui,sans-serif;padding:24px;line-height:1.5">
+  <h1>Softmaxter Drop</h1>
+  <p>No se pudo cargar la app desde la red y todavía no hay una copia en caché.</p>
+  <p>Revisa tu conexión e intenta recargar la página.</p>
+</body>
+</html>`, {
+    status: 503,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }
+  });
+}
+
+async function networkFirstNavigation(request) {
+  const cache = await caches.open(CACHE_VERSION);
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      await cache.put('./index.html', response.clone());
+      await cache.put('./', response.clone());
+    }
+    return response;
+  } catch (_) {
+    return offlineHtmlResponse();
+  }
+}
+
+async function cacheFirstSameOrigin(request) {
+  const cached = await caches.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok && response.type !== 'opaque') {
+      const cache = await caches.open(CACHE_VERSION);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (_) {
+    return new Response('Recurso no disponible sin conexión.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
+    });
+  }
 }
 
 self.addEventListener('message', (event) => {
@@ -145,26 +205,11 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
+    event.respondWith(networkFirstNavigation(event.request));
     return;
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request)
-        .then((cached) => cached || fetch(event.request).then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
-          return response;
-        }))
-    );
+    event.respondWith(cacheFirstSameOrigin(event.request));
   }
 });
