@@ -303,7 +303,8 @@
   async function initServiceWorker() {
     if (!('serviceWorker' in navigator) || !window.isSecureContext) return false;
     try {
-      await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      await registration.update().catch(() => undefined);
       await navigator.serviceWorker.ready;
       serviceWorkerControlled = Boolean(navigator.serviceWorker.controller);
       navigator.serviceWorker.addEventListener('controllerchange', () => {

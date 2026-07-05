@@ -3,10 +3,8 @@
    - Cache básico de app shell para PWA.
    - Limpieza automática de descargas activas. */
 
-const CACHE_VERSION = 'softmaxter-drop-v2';
+const CACHE_VERSION = 'softmaxter-drop-v4-cspfinal';
 const APP_SHELL = [
-  './',
-  './index.html',
   './config.js',
   './inline.js',
   './manifest.webmanifest',
