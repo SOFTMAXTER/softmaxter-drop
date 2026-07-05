@@ -9,8 +9,19 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <title>SOFTMAXTER DROP</title>
-  <script defer src="./vendor/signalr.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js'"></script>
-  <script defer src="./vendor/jszip.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'"></script>
+  <script>
+  loadScript(
+    './vendor/signalr.min.js',
+    'https://cdn.jsdelivr.net/npm/@microsoft/signalr@10.0.0/dist/browser/signalr.min.js',
+    'signalR'
+  );
+
+  loadScript(
+    './vendor/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'JSZip'
+  );
+</script>
   <script defer src="./config.js"></script>
   <script defer src="./inline.js"></script>
   <style>
